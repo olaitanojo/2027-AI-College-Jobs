@@ -3,17 +3,45 @@ import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import * as core from "@actions/core";
-import { fetchJobCounts, fetchJobs } from "./queries";
-import { Job } from "./types/job.schema";
-import { JobCounts } from "./types/job-counts.schema";
+import type { Job } from "./types/job.schema";
+import type { JobCounts } from "./types/job-counts.schema";
 import { HEADERS, MARKERS, TABLES } from "./config";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const APPLY_IMG_URL = process.env.APPLY_IMG_URL;
+function escapeTableCell(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/\\/g, "\\\\")
+    .replace(/\|/g, "\\|")
+    .replace(/[\r\n]+/g, " ");
+}
 
-function generateMarkdownTable(
+function getSafeHttpUrl(value: string | undefined, name: string): string {
+  if (!value) {
+    throw new Error(`${name} must be set.`);
+  }
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`${name} must be a valid URL.`);
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error(`${name} must use the http or https protocol.`);
+  }
+
+  return escapeTableCell(url.toString());
+}
+
+export function generateMarkdownTable(
   jobs: Job[],
   salary?: boolean,
   interval: string = "yr"
@@ -26,18 +54,24 @@ function generateMarkdownTable(
   table += `|${headers.map(() => "---").join("|")}|\n`;
 
   jobs.forEach((job) => {
-    const applyCell = `<a href="${job.job_url}"><img src="${APPLY_IMG_URL}" alt="Apply" width="70"/></a>`;
+    const applyCell = `<a href="${getSafeHttpUrl(
+      job.job_url,
+      "job URL"
+    )}"><img src="${getSafeHttpUrl(
+      process.env.APPLY_IMG_URL,
+      "APPLY_IMG_URL"
+    )}" alt="Apply" width="70"/></a>`;
 
     const companyCell = job.company_url
-      ? `<a href="${job.company_url}"><strong>${
-          job.company_name || ""
+      ? `<a href="${getSafeHttpUrl(job.company_url, "company URL")}"><strong>${
+          escapeTableCell(job.company_name)
         }</strong></a>`
-      : `<strong>${job.company_name || ""}</strong>`;
+      : `<strong>${escapeTableCell(job.company_name)}</strong>`;
 
     const row = [
       companyCell,
-      job.job_title || "",
-      job.job_locations || "",
+      escapeTableCell(job.job_title),
+      escapeTableCell(job.job_locations ?? ""),
       applyCell,
       `${job.age}d`,
     ];
@@ -61,15 +95,41 @@ function generateMarkdownTable(
   return table;
 }
 
-function updateTable(
+function getSingleMarkerIndex(
+  readmeContent: string,
+  marker: string,
+  markerName: string
+): number {
+  const firstIndex = readmeContent.indexOf(marker);
+  const lastIndex = readmeContent.lastIndexOf(marker);
+
+  if (firstIndex === -1) {
+    throw new Error(`Missing ${markerName} marker: ${marker}`);
+  }
+
+  if (firstIndex !== lastIndex) {
+    throw new Error(`Duplicate ${markerName} marker: ${marker}`);
+  }
+
+  return firstIndex;
+}
+
+export function updateTable(
   readmeContent: string,
   marker: { start: string; end: string },
   tableContent: string
 ): string {
   const { start, end } = marker;
-  const before = readmeContent.split(start)[0];
-  const after = readmeContent.split(end)[1] ?? "";
-  return `${before}${start}\n${tableContent}\n${end}${after}`;
+  const startIndex = getSingleMarkerIndex(readmeContent, start, "start");
+  const endIndex = getSingleMarkerIndex(readmeContent, end, "end");
+
+  if (endIndex <= startIndex + start.length) {
+    throw new Error(`Table end marker must appear after its start marker.`);
+  }
+
+  const before = readmeContent.slice(0, startIndex + start.length);
+  const after = readmeContent.slice(endIndex);
+  return `${before}\n${tableContent}\n${after}`;
 }
 
 function updateReadme(
@@ -130,6 +190,7 @@ function updateTotalCount(jobCounts: JobCounts) {
 
 async function main() {
   try {
+    const { fetchJobCounts, fetchJobs } = await import("./queries");
     const jobCounts = await fetchJobCounts();
 
     for (const table of TABLES) {
@@ -166,4 +227,6 @@ async function main() {
   }
 }
 
-main();
+if (import.meta.main) {
+  main();
+}
