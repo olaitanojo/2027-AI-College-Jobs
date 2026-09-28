@@ -5,6 +5,7 @@
   "description": "The most comprehensive AI internship & new graduate job list on GitHub.",
   "scripts": {
     "build": "tsc --noEmit",
+    "test": "bun test",
     "get-jobs": "bun src/get-jobs.ts",
     "add-or-update-job": "bun src/add-or-update-job.ts"
   },
