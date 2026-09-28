@@ -6,6 +6,16 @@
 
 
 This repository is a comprehensive list of AI/ML & Data Science jobs for college students in search of **internships** or **new graduate** positions. The positions are updated daily, and we prioritize jobs posted within the last 120 days.
+## Fork synchronization
+
+This fork automatically synchronizes its `main` branch with [the upstream repository](https://github.com/speedyapply/2027-AI-College-Jobs) through the [`Sync Fork with Upstream`](.github/workflows/sync-upstream.yml) GitHub Actions workflow.
+
+- The workflow checks for upstream updates every five minutes and synchronizes this fork when an update is available.
+- To run it on demand, open the **Actions** tab, select **Sync Fork with Upstream**, then choose **Run workflow**.
+- The workflow uses the repository's built-in `GITHUB_TOKEN`; no personal access token or additional secret is required.
+- Fork-only changes are preserved. If upstream changes conflict with them, the sync run fails rather than overwriting work and requires manual resolution.
+
+GitHub may delay scheduled workflows and can disable them after extended repository inactivity. A manual workflow run remains available whenever synchronization is needed.
 
 ### USA Positions :eagle:
 - [Internships :books:](/) - **631** available ([FAANG+](#faang), [Quant](#quant), [Other](#other))
