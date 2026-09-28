@@ -16,6 +16,9 @@ This fork automatically synchronizes its `main` branch with [the upstream reposi
 - Fork-only changes are preserved. If upstream changes conflict with them, the sync run fails rather than overwriting work and requires manual resolution.
 
 GitHub may delay scheduled workflows and can disable them after extended repository inactivity. A manual workflow run remains available whenever synchronization is needed.
+### Verify a synchronization
+
+After a scheduled or manual run, open the **Actions** tab and confirm that the latest **Sync Fork with Upstream** run completed successfully. A successful synchronization leaves this fork **0 commits behind** `speedyapply/2027-AI-College-Jobs`; fork-only commits can still leave it ahead of upstream and are expected.
 
 ### USA Positions :eagle:
 - [Internships :books:](/) - **631** available ([FAANG+](#faang), [Quant](#quant), [Other](#other))
